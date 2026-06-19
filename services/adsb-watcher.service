@@ -1,0 +1,12 @@
+[Unit]
+Description=ADS-B callsign watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=%h/.local/bin/adsb-watcher
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=default.target

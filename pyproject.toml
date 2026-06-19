@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adsb-watcher"
+version = "0.1.0"
+description = "ADS-B callsign watcher with desktop notifications"
+requires-python = ">=3.11"
+dependencies = ["plyer>=2.1"]
+
+[project.scripts]
+adsb-watcher = "watcher:main"
+
+[tool.setuptools]
+py-modules = ["watcher"]

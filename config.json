@@ -1,0 +1,9 @@
+{
+  "receiver_url": "http://192.168.1.137/dump1090/data/aircraft.json",
+  "poll_interval_seconds": 15,
+  "resight_cooldown_minutes": 30,
+  "watchlist": [
+    "N2225E",
+    "DL4958"
+  ]
+}
