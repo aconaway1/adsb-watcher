@@ -28,13 +28,17 @@ def config_path() -> Path:
     return candidate
 
 
-def load_config() -> dict:
+def load_config() -> dict | None:
     path = config_path()
     if not path.exists():
         print(f"Config not found at {path}. Copy config.json there to get started.")
         sys.exit(1)
-    with path.open() as f:
-        return json.load(f)
+    try:
+        with path.open() as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"[{now()}] Config parse error: {e}")
+        return None
 
 
 def fetch_aircraft(url: str) -> list[dict] | None:
@@ -243,6 +247,10 @@ def main():
 
     while True:
         config = load_config()
+        if config is None:
+            time.sleep(5)
+            continue
+
         url = config["receiver_url"]
 
         if url != active_receiver_url:
