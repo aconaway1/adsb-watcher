@@ -10,9 +10,17 @@ Polls a [dump1090](https://github.com/flightaware/dump1090) receiver and fires a
 
 ## Installation
 
+**From the repository:**
+```
+pipx install git+https://github.com/aconaway1/adsb-watcher.git
+```
+
+**From a local clone:**
 ```
 pipx install .
 ```
+
+If `adsb-watcher` isn't found after installing, run `pipx ensurepath` and open a new terminal.
 
 ## Configuration
 
