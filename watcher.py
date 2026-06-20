@@ -64,7 +64,11 @@ def _click_url(callsign: str, aircraft: dict, config: dict) -> str | None:
     action = config.get("click_action", "fr24")
     cs = callsign.strip()
     if action == "fr24":
-        return f"https://www.flightradar24.com/data/flights/{cs.lower()}"
+        lat = aircraft.get("lat")
+        lon = aircraft.get("lon")
+        if lat is not None and lon is not None:
+            return f"https://www.flightradar24.com/{lat:.4f},{lon:.4f}/11"
+        return "https://www.flightradar24.com/"
     if action == "planefinder":
         return f"https://planefinder.net/flight/{cs}"
     if action == "opensky":
