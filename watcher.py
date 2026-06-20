@@ -75,7 +75,12 @@ def _click_url(callsign: str, aircraft: dict, config: dict) -> str | None:
 def _send_notification(title: str, message: str, url: str | None = None):
     try:
         if sys.platform == "darwin":
-            tn = shutil.which("terminal-notifier")
+            tn = shutil.which("terminal-notifier") or next(
+                (p for p in [
+                    "/opt/homebrew/bin/terminal-notifier",
+                    "/usr/local/bin/terminal-notifier",
+                ] if Path(p).exists()), None
+            )
             if tn and url:
                 subprocess.run([tn, "-title", title, "-message", message, "-open", url], check=False)
             else:
