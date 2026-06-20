@@ -42,6 +42,8 @@ Then open `config.json` and fill in your receiver address and watchlist.
 
 Clicking a notification opens a page for the matched flight. Requires [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) on macOS (`brew install terminal-notifier`); without it, notifications fire but are not clickable. Click actions on Linux and Windows are not yet implemented.
 
+After installing `terminal-notifier`, open **System Settings → Notifications → terminal-notifier** and enable notifications — macOS blocks it by default until you do.
+
 Watchlist entries are case-insensitive and support `*` and `?` wildcards — `DL*` matches any Delta flight, `N????E` matches any 4-character N-number ending in E.
 
 ## Updating
