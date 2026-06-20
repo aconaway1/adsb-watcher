@@ -2,6 +2,7 @@
   "receiver_url": "http://192.168.1.x/dump1090/data/aircraft.json",
   "poll_interval_seconds": 15,
   "resight_cooldown_minutes": 30,
+  "click_action": "fr24",
   "watchlist": [
     "N12345",
     "DAL*",

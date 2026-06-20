@@ -4,6 +4,7 @@
 import json
 import fnmatch
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -11,6 +12,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 def config_path() -> Path:
@@ -54,15 +56,35 @@ def matches_watchlist(callsign: str, watchlist: list[str]) -> str | None:
     return None
 
 
-def _send_notification(title: str, message: str):
+def _click_url(callsign: str, aircraft: dict, config: dict) -> str | None:
+    action = config.get("click_action", "fr24")
+    cs = callsign.strip()
+    if action == "fr24":
+        return f"https://www.flightradar24.com/data/flights/{cs.lower()}"
+    if action == "planefinder":
+        return f"https://planefinder.net/flight/{cs}"
+    if action == "opensky":
+        hex_code = aircraft.get("hex", "").strip().lower()
+        return f"https://opensky-network.org/aircraft-profile?icao24={hex_code}" if hex_code else None
+    if action == "receiver":
+        parsed = urlparse(config.get("receiver_url", ""))
+        return f"{parsed.scheme}://{parsed.netloc}/"
+    return None
+
+
+def _send_notification(title: str, message: str, url: str | None = None):
     try:
         if sys.platform == "darwin":
-            t = title.replace("\\", "\\\\").replace('"', '\\"')
-            m = message.replace("\\", "\\\\").replace('"', '\\"')
-            subprocess.run(
-                ["osascript", "-e", f'display notification "{m}" with title "{t}"'],
-                check=False,
-            )
+            tn = shutil.which("terminal-notifier")
+            if tn and url:
+                subprocess.run([tn, "-title", title, "-message", message, "-open", url], check=False)
+            else:
+                t = title.replace("\\", "\\\\").replace('"', '\\"')
+                m = message.replace("\\", "\\\\").replace('"', '\\"')
+                subprocess.run(
+                    ["osascript", "-e", f'display notification "{m}" with title "{t}"'],
+                    check=False,
+                )
         elif sys.platform == "linux":
             subprocess.run(["notify-send", title, message], check=False)
         elif sys.platform == "win32":
@@ -80,7 +102,7 @@ def _send_notification(title: str, message: str):
         print(f"[{now()}] Notification error: {e}")
 
 
-def notify_aircraft(callsign: str, aircraft: dict, pattern: str):
+def notify_aircraft(callsign: str, aircraft: dict, pattern: str, config: dict):
     details = []
     if "altitude" in aircraft:
         details.append(f"Alt {aircraft['altitude']:,} ft")
@@ -93,6 +115,7 @@ def notify_aircraft(callsign: str, aircraft: dict, pattern: str):
     _send_notification(
         title=f"ADS-B: {callsign.strip()} sighted",
         message=f"{detail_str}  (matched: {pattern})",
+        url=_click_url(callsign, aircraft, config),
     )
     print(f"[{now()}] SIGHTED  {callsign.strip():<10}  {detail_str}  (matched: {pattern})")
 
@@ -233,7 +256,7 @@ def main():
             cs_key = raw_callsign.strip().upper()
             last = last_notified.get(cs_key)
             if last is None or (now_dt - last) >= cooldown:
-                notify_aircraft(raw_callsign, ac, pattern)
+                notify_aircraft(raw_callsign, ac, pattern, config)
                 last_notified[cs_key] = now_dt
 
         cutoff = now_dt - cooldown * 4
