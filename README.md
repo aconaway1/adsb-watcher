@@ -44,6 +44,20 @@ Clicking a notification opens a page for the matched flight. Requires [`terminal
 
 Watchlist entries are case-insensitive and support `*` and `?` wildcards — `DL*` matches any Delta flight, `N????E` matches any 4-character N-number ending in E.
 
+## Updating
+
+```
+git pull
+```
+
+Config changes take effect on the next poll cycle. If you've installed the background service, restart it to pick up code changes:
+
+**macOS:** `launchctl unload ~/Library/LaunchAgents/com.adsb-watcher.plist && launchctl load ~/Library/LaunchAgents/com.adsb-watcher.plist`
+
+**Linux:** `systemctl --user restart adsb-watcher`
+
+**Windows:** `schtasks /end /tn "ADS-B Watcher" && schtasks /run /tn "ADS-B Watcher"`
+
 ## Running
 
 ```
