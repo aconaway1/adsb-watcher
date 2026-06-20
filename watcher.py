@@ -4,6 +4,7 @@
 import json
 import fnmatch
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,33 @@ import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
+
+# ICAO 3-letter -> IATA 2-letter airline code
+_ICAO_TO_IATA: dict[str, str] = {
+    "AAL": "AA",  # American Airlines
+    "AFR": "AF",  # Air France
+    "ANA": "NH",  # All Nippon Airways
+    "ASA": "AS",  # Alaska Airlines
+    "BAW": "BA",  # British Airways
+    "DAL": "DL",  # Delta Air Lines
+    "DLH": "LH",  # Lufthansa
+    "EDV": "9E",  # Endeavor Air
+    "EVA": "BR",  # EVA Air
+    "FFT": "F9",  # Frontier Airlines
+    "HAL": "HA",  # Hawaiian Airlines
+    "JAL": "JL",  # Japan Airlines
+    "JBU": "B6",  # JetBlue Airways
+    "JIA": "OH",  # PSA Airlines
+    "KAL": "KE",  # Korean Air
+    "KLM": "KL",  # KLM
+    "QFA": "QF",  # Qantas
+    "RPA": "YX",  # Republic Airways
+    "SKW": "OO",  # SkyWest Airlines
+    "SWA": "WN",  # Southwest Airlines
+    "UAL": "UA",  # United Airlines
+    "FDX": "FX",  # FedEx
+    "UPS": "5X",  # UPS Airlines
+}
 
 
 def config_path() -> Path:
@@ -64,11 +92,12 @@ def _click_url(callsign: str, aircraft: dict, config: dict) -> str | None:
     action = config.get("click_action", "fr24")
     cs = callsign.strip()
     if action == "fr24":
-        lat = aircraft.get("lat")
-        lon = aircraft.get("lon")
-        if lat is not None and lon is not None:
-            return f"https://www.flightradar24.com/{lat:.4f},{lon:.4f}/11"
-        return "https://www.flightradar24.com/"
+        m = re.match(r'^([A-Z]{2,3})(\d+.*)$', cs.upper())
+        if m:
+            icao, num = m.groups()
+            iata = _ICAO_TO_IATA.get(icao, icao)
+            return f"https://www.flightradar24.com/data/flights/{(iata + num).lower()}"
+        return f"https://www.flightradar24.com/data/flights/{cs.lower()}"
     if action == "planefinder":
         return f"https://planefinder.net/flight/{cs}"
     if action == "opensky":
