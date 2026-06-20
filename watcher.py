@@ -37,14 +37,14 @@ def load_config() -> dict:
         return json.load(f)
 
 
-def fetch_aircraft(url: str) -> list[dict]:
+def fetch_aircraft(url: str) -> list[dict] | None:
     try:
         with urllib.request.urlopen(url, timeout=10) as resp:
             data = json.load(resp)
             return data.get("aircraft", [])
     except (urllib.error.URLError, json.JSONDecodeError) as e:
         print(f"[{now()}] Fetch error: {e}")
-        return []
+        return None
 
 
 def matches_watchlist(callsign: str, watchlist: list[str]) -> str | None:
@@ -233,6 +233,7 @@ def main():
 
     print(f"ADS-B Watcher starting. Config: {config_path()}")
     last_notified: dict[str, datetime] = {}
+    receiver_down = False
 
     while True:
         config = load_config()
@@ -243,6 +244,15 @@ def main():
 
         aircraft_list = fetch_aircraft(url)
         now_dt = datetime.now()
+
+        if aircraft_list is None:
+            if not receiver_down:
+                _send_notification("ADS-B Watcher: receiver unreachable", url)
+                receiver_down = True
+            time.sleep(poll)
+            continue
+
+        receiver_down = False
 
         for ac in aircraft_list:
             raw_callsign = ac.get("flight", "")
