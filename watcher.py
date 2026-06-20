@@ -4,14 +4,13 @@
 import json
 import fnmatch
 import os
+import subprocess
 import sys
 import time
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta
 from pathlib import Path
-
-from plyer import notification
 
 
 def config_path() -> Path:
@@ -55,6 +54,32 @@ def matches_watchlist(callsign: str, watchlist: list[str]) -> str | None:
     return None
 
 
+def _send_notification(title: str, message: str):
+    try:
+        if sys.platform == "darwin":
+            t = title.replace("\\", "\\\\").replace('"', '\\"')
+            m = message.replace("\\", "\\\\").replace('"', '\\"')
+            subprocess.run(
+                ["osascript", "-e", f'display notification "{m}" with title "{t}"'],
+                check=False,
+            )
+        elif sys.platform == "linux":
+            subprocess.run(["notify-send", title, message], check=False)
+        elif sys.platform == "win32":
+            ps = (
+                "Add-Type -AssemblyName System.Windows.Forms;"
+                "$n = New-Object System.Windows.Forms.NotifyIcon;"
+                "$n.Icon = [System.Drawing.SystemIcons]::Information;"
+                "$n.Visible = $true;"
+                f"$n.ShowBalloonTip(10000, '{title}', '{message}', "
+                "[System.Windows.Forms.ToolTipIcon]::None);"
+                "Start-Sleep -Seconds 11"
+            )
+            subprocess.Popen(["powershell", "-Command", ps])
+    except Exception as e:
+        print(f"[{now()}] Notification error: {e}")
+
+
 def notify_aircraft(callsign: str, aircraft: dict, pattern: str):
     details = []
     if "altitude" in aircraft:
@@ -65,12 +90,9 @@ def notify_aircraft(callsign: str, aircraft: dict, pattern: str):
         details.append(f"{aircraft['lat']:.3f}, {aircraft['lon']:.3f}")
 
     detail_str = "  •  ".join(details) if details else "No position data"
-
-    notification.notify(
+    _send_notification(
         title=f"ADS-B: {callsign.strip()} sighted",
         message=f"{detail_str}  (matched: {pattern})",
-        app_name="ADS-B Watcher",
-        timeout=10,
     )
     print(f"[{now()}] SIGHTED  {callsign.strip():<10}  {detail_str}  (matched: {pattern})")
 

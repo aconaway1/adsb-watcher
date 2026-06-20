@@ -53,15 +53,12 @@ Logs sightings to stdout. Press Ctrl-C to stop.
 
 ### macOS (launchd)
 
-1. Edit `services/com.adsb-watcher.plist` and replace the path placeholder with the output of `which adsb-watcher`.
+```
+cp services/com.adsb-watcher.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.adsb-watcher.plist
+```
 
-2. Install and start the LaunchAgent:
-   ```
-   cp services/com.adsb-watcher.plist ~/Library/LaunchAgents/
-   launchctl load ~/Library/LaunchAgents/com.adsb-watcher.plist
-   ```
-
-3. Logs are written to `/tmp/adsb-watcher.log`.
+Logs are written to `/tmp/adsb-watcher.log`.
 
 To stop: `launchctl unload ~/Library/LaunchAgents/com.adsb-watcher.plist`
 
