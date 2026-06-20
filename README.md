@@ -5,26 +5,16 @@ Polls a [dump1090](https://github.com/flightaware/dump1090) receiver and fires a
 ## Requirements
 
 - Python 3.11+
-- [pipx](https://pipx.pypa.io/) (recommended) or pip
 - A running dump1090 instance on your network
 
-## Installation
+## Setup
 
-**From the repository:**
 ```
-pipx install git+https://github.com/aconaway1/adsb-watcher.git
-```
-
-**From a local clone:**
-```
-pipx install .
+git clone https://github.com/aconaway1/adsb-watcher.git
+cd adsb-watcher
 ```
 
-If `adsb-watcher` isn't found after installing, run `pipx ensurepath` and open a new terminal.
-
-## Configuration
-
-Copy the example config to the config directory and edit it:
+Copy the example config and edit it:
 
 **macOS / Linux**
 ```
@@ -49,10 +39,10 @@ Then open `config.json` and fill in your receiver address and watchlist.
 
 Watchlist entries are case-insensitive and support `*` and `?` wildcards — `DL*` matches any Delta flight, `N????E` matches any 4-character N-number ending in E.
 
-## Running manually
+## Running
 
 ```
-adsb-watcher
+python watcher.py
 ```
 
 Logs sightings to stdout. Press Ctrl-C to stop.
@@ -60,7 +50,7 @@ Logs sightings to stdout. Press Ctrl-C to stop.
 ## Running as a background service
 
 ```
-adsb-watcher install-service
+python watcher.py install-service
 ```
 
 This registers the watcher with the native service manager for your platform (launchd on macOS, systemd on Linux, Task Scheduler on Windows) and starts it immediately. The service restarts automatically on failure and runs at login.

@@ -101,7 +101,8 @@ def now() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
 
-def _install_service_macos(binary: str):
+def _install_service_macos(args: list[str]):
+    args_xml = "\n".join(f"        <string>{a}</string>" for a in args)
     plist = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -111,7 +112,7 @@ def _install_service_macos(binary: str):
     <string>com.adsb-watcher</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{binary}</string>
+{args_xml}
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -130,14 +131,14 @@ def _install_service_macos(binary: str):
     print(f"To stop: launchctl unload {dest}")
 
 
-def _install_service_linux(binary: str):
+def _install_service_linux(args: list[str]):
     service = f"""[Unit]
 Description=ADS-B callsign watcher
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart={binary}
+ExecStart={" ".join(args)}
 Restart=on-failure
 RestartSec=15
 
@@ -155,7 +156,9 @@ WantedBy=default.target
     print(f"To stop: systemctl --user disable --now adsb-watcher")
 
 
-def _install_service_windows(binary: str):
+def _install_service_windows(args: list[str]):
+    command, *arguments = args
+    args_xml = "".join(f"<Argument>{a}</Argument>" for a in arguments)
     xml = f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers>
@@ -169,7 +172,7 @@ def _install_service_windows(binary: str):
     <RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure>
   </Settings>
   <Actions>
-    <Exec><Command>{binary}</Command></Exec>
+    <Exec><Command>{command}</Command>{args_xml}</Exec>
   </Actions>
 </Task>"""
     tmp = Path(os.environ.get("TEMP", Path.home())) / "adsb-watcher-task.xml"
@@ -180,14 +183,21 @@ def _install_service_windows(binary: str):
     print('To remove: schtasks /delete /tn "ADS-B Watcher"')
 
 
+def _service_args() -> list[str]:
+    script = Path(sys.argv[0]).resolve()
+    if script.suffix == ".py":
+        return [sys.executable, str(script)]
+    return [str(script)]
+
+
 def install_service():
-    binary = str(Path(sys.argv[0]).resolve())
+    args = _service_args()
     if sys.platform == "darwin":
-        _install_service_macos(binary)
+        _install_service_macos(args)
     elif sys.platform == "linux":
-        _install_service_linux(binary)
+        _install_service_linux(args)
     elif sys.platform == "win32":
-        _install_service_windows(binary)
+        _install_service_windows(args)
     else:
         print(f"Unsupported platform: {sys.platform}")
         sys.exit(1)
