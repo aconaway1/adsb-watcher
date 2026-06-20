@@ -273,6 +273,7 @@ def main():
             continue
 
         receiver_down = False
+        matched = 0
 
         for ac in aircraft_list:
             raw_callsign = ac.get("flight", "")
@@ -288,6 +289,9 @@ def main():
             if last is None or (now_dt - last) >= cooldown:
                 notify_aircraft(raw_callsign, ac, pattern, config)
                 last_notified[cs_key] = now_dt
+            matched += 1
+
+        print(f"[{now()}] {len(aircraft_list)} aircraft, {matched} matched")
 
         cutoff = now_dt - cooldown * 4
         last_notified = {k: v for k, v in last_notified.items() if v > cutoff}
