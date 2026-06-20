@@ -234,10 +234,17 @@ def main():
     print(f"ADS-B Watcher starting. Config: {config_path()}")
     last_notified: dict[str, datetime] = {}
     receiver_down = False
+    active_receiver_url = None
 
     while True:
         config = load_config()
         url = config["receiver_url"]
+
+        if url != active_receiver_url:
+            if active_receiver_url is not None:
+                print(f"[{now()}] Receiver changed, resetting cooldown timers.")
+                last_notified.clear()
+            active_receiver_url = url
         poll = config["poll_interval_seconds"]
         cooldown = timedelta(minutes=config["resight_cooldown_minutes"])
         watchlist = config["watchlist"]
