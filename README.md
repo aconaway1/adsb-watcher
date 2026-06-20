@@ -51,45 +51,8 @@ Logs sightings to stdout. Press Ctrl-C to stop.
 
 ## Running as a background service
 
-### macOS (launchd)
-
 ```
-cp services/com.adsb-watcher.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.adsb-watcher.plist
+adsb-watcher install-service
 ```
 
-Logs are written to `/tmp/adsb-watcher.log`.
-
-To stop: `launchctl unload ~/Library/LaunchAgents/com.adsb-watcher.plist`
-
-### Linux (systemd)
-
-```
-cp services/adsb-watcher.service ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now adsb-watcher
-```
-
-The unit file assumes `adsb-watcher` is installed at `~/.local/bin/adsb-watcher` (the pipx default). Adjust `ExecStart` if your path differs.
-
-View logs: `journalctl --user -u adsb-watcher -f`
-
-To stop: `systemctl --user disable --now adsb-watcher`
-
-### Windows (Task Scheduler)
-
-1. Find the full path to the installed binary:
-   ```
-   where adsb-watcher
-   ```
-
-2. Edit `services\adsb-watcher.xml` and replace `adsb-watcher` in the `<Command>` element with that full path.
-
-3. Import the task:
-   ```
-   schtasks /create /xml services\adsb-watcher.xml /tn "ADS-B Watcher"
-   ```
-
-The task runs at login and restarts automatically on failure.
-
-To stop: `schtasks /delete /tn "ADS-B Watcher"`
+This registers the watcher with the native service manager for your platform (launchd on macOS, systemd on Linux, Task Scheduler on Windows) and starts it immediately. The service restarts automatically on failure and runs at login.

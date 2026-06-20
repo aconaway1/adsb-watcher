@@ -101,7 +101,103 @@ def now() -> str:
     return datetime.now().strftime("%H:%M:%S")
 
 
+def _install_service_macos(binary: str):
+    plist = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.adsb-watcher</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{binary}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/adsb-watcher.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/adsb-watcher.log</string>
+</dict>
+</plist>"""
+    dest = Path.home() / "Library" / "LaunchAgents" / "com.adsb-watcher.plist"
+    dest.write_text(plist)
+    subprocess.run(["launchctl", "load", str(dest)], check=False)
+    print(f"Installed and started. Logs: /tmp/adsb-watcher.log")
+    print(f"To stop: launchctl unload {dest}")
+
+
+def _install_service_linux(binary: str):
+    service = f"""[Unit]
+Description=ADS-B callsign watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart={binary}
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=default.target
+"""
+    dest_dir = Path.home() / ".config" / "systemd" / "user"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "adsb-watcher.service"
+    dest.write_text(service)
+    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    subprocess.run(["systemctl", "--user", "enable", "--now", "adsb-watcher"], check=False)
+    print("Installed and started.")
+    print("Logs: journalctl --user -u adsb-watcher -f")
+    print(f"To stop: systemctl --user disable --now adsb-watcher")
+
+
+def _install_service_windows(binary: str):
+    xml = f"""<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Triggers>
+    <LogonTrigger><Enabled>true</Enabled></LogonTrigger>
+  </Triggers>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure>
+  </Settings>
+  <Actions>
+    <Exec><Command>{binary}</Command></Exec>
+  </Actions>
+</Task>"""
+    tmp = Path(os.environ.get("TEMP", Path.home())) / "adsb-watcher-task.xml"
+    tmp.write_text(xml, encoding="utf-16")
+    subprocess.run(["schtasks", "/create", "/xml", str(tmp), "/tn", "ADS-B Watcher"], check=False)
+    tmp.unlink(missing_ok=True)
+    print("Task Scheduler entry created. It will start at next login.")
+    print('To remove: schtasks /delete /tn "ADS-B Watcher"')
+
+
+def install_service():
+    binary = str(Path(sys.argv[0]).resolve())
+    if sys.platform == "darwin":
+        _install_service_macos(binary)
+    elif sys.platform == "linux":
+        _install_service_linux(binary)
+    elif sys.platform == "win32":
+        _install_service_windows(binary)
+    else:
+        print(f"Unsupported platform: {sys.platform}")
+        sys.exit(1)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "install-service":
+        install_service()
+        return
+
     print(f"ADS-B Watcher starting. Config: {config_path()}")
     last_notified: dict[str, datetime] = {}
 
